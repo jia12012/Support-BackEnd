@@ -7,7 +7,7 @@ router = APIRouter()
 @router.post("/")
 async def chat_endpoint(
     text: str = Body(..., embed=True),
-    session_id: str = Body(..., embed=True)  # 加上 session_id
+    session_id: str = Body(..., embed=True)
 ):
-    reply = chat_with_model(text, session_id)
+    reply = await chat_with_model(text, session_id)
     return {"response": reply}

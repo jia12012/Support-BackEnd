@@ -1,6 +1,7 @@
 # routers/chat.py
 from fastapi import APIRouter, Body
 from services.llm_service import chat_with_model
+from services.memory_store import save_history
 
 router = APIRouter()
 
@@ -11,3 +12,9 @@ async def chat_endpoint(
 ):
     reply = await chat_with_model(text, session_id)
     return {"response": reply}
+
+
+@router.delete("/memory/{session_id}")
+async def delete_memory(session_id: str):
+    await save_history(session_id, [])  # 用空 list 覆蓋
+    return {"message": f"Memory for session '{session_id}' deleted."}

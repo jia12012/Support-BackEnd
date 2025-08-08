@@ -8,9 +8,10 @@ router = APIRouter()
 @router.post("/")
 async def chat_endpoint(
     text: str = Body(..., embed=True),
-    session_id: str = Body(..., embed=True)
+    session_id: str = Body(..., embed=True),
+    model_name: str = Body(..., embed=True),
 ):
-    reply = await chat_with_model(text, session_id)
+    reply = await chat_with_model(text, session_id, model_name)
     return {"response": reply}
 
 

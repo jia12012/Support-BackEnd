@@ -1,6 +1,7 @@
 # services/llm_service.py
 from llama_cpp import Llama
-from services.memory_store import get_history, save_history
+from services.memory_store import get_history, save_history, get_summary, save_summary
+from services.summarize import summarize_conversation
 
 # 初始化四個模型
 llm_models = {
@@ -12,8 +13,10 @@ llm_models = {
 
 async def chat_with_model(user_input: str, session_id: str,model_name: str, max_new_tokens: int = 150) -> str:
     history = await get_history(session_id)
+    summary = await get_summary(session_id)
 
     prompt_parts = []
+
     for turn in history[-10:] :
         prompt_parts.append(f"<|user|>{turn['user']}<|assistant|>{turn['bot']}")
     prompt_parts.append(f"<|user|>{user_input.strip()}<|assistant|>")
@@ -32,6 +35,13 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     reply = output["choices"][0]["text"].strip()
 
     history.append({"user": user_input, "bot": reply})
+
+    #進行摘要
+    user_history = [turn["user"] for turn in history if "user" in turn]
+    user_summary = summarize_conversation(user_history)
+    print("summary: ", user_summary)
+
     await save_history(session_id, history)
+    await save_summary(session_id, user_summary)
 
     return reply

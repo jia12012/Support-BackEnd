@@ -14,10 +14,11 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     history = await get_history(session_id)
 
     prompt_parts = []
-    for turn in history:
-        prompt_parts.append(f"<|user|>\n{turn['user']}\n<|assistant|>\n{turn['bot']}")
-    prompt_parts.append(f"<|user|>\n{user_input.strip()}\n<|assistant|>\n")
-    prompt = "\n".join(prompt_parts)
+    for turn in history[-10:] :
+        prompt_parts.append(f"<|user|>{turn['user']}<|assistant|>{turn['bot']}")
+    prompt_parts.append(f"<|user|>{user_input.strip()}<|assistant|>")
+    prompt = "".join(prompt_parts)
+    print(prompt)
 
     llm = llm_models[model_name]
     output = llm(
@@ -31,6 +32,6 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     reply = output["choices"][0]["text"].strip()
 
     history.append({"user": user_input, "bot": reply})
-    await save_history(session_id, history[-10:])
+    await save_history(session_id, history)
 
     return reply

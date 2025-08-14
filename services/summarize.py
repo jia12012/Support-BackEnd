@@ -12,7 +12,7 @@ def summarize_conversation(history: list[str]) -> str:
 
     input_len = len(text.split())
     max_length = int(input_len * 0.5) # 最長約佔原文 30%
-    min_length = max(30, int(input_len * 0.1))   # 最短佔原文 10%
+    min_length = int(input_len * 0.1)  # 最短佔原文 10%
 
     # T5 要求加前綴 "summarize:"
     text = "summarize: " + text

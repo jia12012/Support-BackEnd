@@ -62,10 +62,12 @@ async def get_summary(session_id: str):
 #儲存聊天摘要
 async def save_summary(session_id: str, summary: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE summary SET summary_text = ? WHERE session_id = ?",
-            (summary, session_id)
-        )
+        await db.execute("""
+            INSERT INTO summary (session_id, summary_text)
+            VALUES (?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                summary_text = excluded.summary_text
+        """, (session_id, summary))
         await db.commit()
 
 # 儲存總模型回覆摘要

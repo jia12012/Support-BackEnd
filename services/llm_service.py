@@ -17,7 +17,11 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
 
     prompt_parts = []
 
-    for turn in history[-10:] :
+    # 加入摘要
+    if len(history) > 3:
+      prompt_parts.append(f"<SUMMARY>{summary}</SUMMARY>")
+
+    for turn in history[-3:] :
         prompt_parts.append(f"<|user|>{turn['user']}<|assistant|>{turn['bot']}")
     prompt_parts.append(f"<|user|>{user_input.strip()}<|assistant|>")
     prompt = "".join(prompt_parts)
@@ -41,7 +45,7 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     user_summary = summarize_conversation(user_history)
     print("summary: ", user_summary)
 
-    await save_history(session_id, history)
+    await save_history(session_id, history, model_name)
     await save_summary(session_id, user_summary)
 
     return reply

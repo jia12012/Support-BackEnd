@@ -33,7 +33,7 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
         max_tokens=max_new_tokens,
         temperature=0.7,
         top_p=0.95,
-        stop=["<|user|>", "<|endoftext|>"]
+        stop=["<|user|>", "<|endoftext|>", "</|user|>", "User:"]
     )
 
     reply = output["choices"][0]["text"].strip()

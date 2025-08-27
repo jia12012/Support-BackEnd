@@ -10,7 +10,8 @@ async def init_db():
         await db.execute("""
             CREATE TABLE IF NOT EXISTS memory (
                 session_id TEXT PRIMARY KEY,
-                history TEXT
+                history TEXT,
+                model TEXT
             )
         """)
 
@@ -18,6 +19,14 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS summary (
                 session_id TEXT PRIMARY KEY,
                 summary_text TEXT
+            )
+        """)
+
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS ai_summary (
+                session_id TEXT PRIMARY KEY,
+                ai_summary_text TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -33,14 +42,15 @@ async def get_history(session_id: str):
             return []
 
 # 儲存聊天歷史
-async def save_history(session_id: str, history: list):
+async def save_history(session_id: str, history: list, model: str):
     history_json = json.dumps(history)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "REPLACE INTO memory (session_id, history) VALUES (?, ?)",
-            (session_id, history_json)
+            "REPLACE INTO memory (session_id, history, model) VALUES (?, ?, ?)",
+            (session_id, history_json, model)
         )
         await db.commit()
+
 
 #讀取聊天摘要
 async def get_summary(session_id: str):
@@ -55,5 +65,17 @@ async def save_summary(session_id: str, summary: str):
         await db.execute(
             "UPDATE summary SET summary_text = ? WHERE session_id = ?",
             (summary, session_id)
+        )
+        await db.commit()
+
+# 儲存總模型回覆摘要
+async def save_ai_summary(session_id: str, summary: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT OR REPLACE INTO ai_summary (session_id, ai_summary_text, created_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            """,
+            (session_id, summary)
         )
         await db.commit()

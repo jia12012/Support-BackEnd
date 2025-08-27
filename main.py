@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from routers import asr, chat
+from routers import asr, chat, sessions
 from services.memory_store import init_db
 
 app = FastAPI()
@@ -11,6 +11,7 @@ async def startup():
 
 app.include_router(asr.router, prefix="/asr")
 app.include_router(chat.router, prefix="/chat")
+app.include_router(sessions.router, prefix="/sessions")
 
 if __name__ == "__main__":
     import uvicorn

@@ -2,6 +2,8 @@
 from fastapi import APIRouter, Body
 from services.llm_service import chat_with_model
 from services.memory_store import save_history
+import aiosqlite
+DB_PATH = "chat_memory.db"
 
 router = APIRouter()
 
@@ -15,7 +17,16 @@ async def chat_endpoint(
     return {"response": reply}
 
 
+# 刪除聊天記錄（包含 memory / summary / ai_summary）
 @router.delete("/memory/{session_id}")
-async def delete_memory(session_id: str):
-    await save_history(session_id, [])  # 用空 list 覆蓋
-    return {"message": f"Memory for session '{session_id}' deleted."}
+async def delete_history(session_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        # 刪除 memory
+        await db.execute("DELETE FROM memory WHERE session_id = ?", (session_id,))
+        # 刪除 summary
+        await db.execute("DELETE FROM summary WHERE session_id = ?", (session_id,))
+        # 刪除 ai_summary
+        await db.execute("DELETE FROM ai_summary WHERE session_id = ?", (session_id,))
+
+        await db.commit()
+

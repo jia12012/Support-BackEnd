@@ -1,4 +1,7 @@
 from transformers import pipeline
+import aiosqlite
+from services.memory_store import get_ai_history, save_ai_summary
+DB_PATH = "chat_memory.db"
 
 # 初始化一次（建議啟動時就跑）
 summarizer = pipeline("summarization", model="philschmid/bart-large-cnn-samsum")
@@ -20,3 +23,20 @@ def summarize_conversation(history: list[str]) -> str:
     # 呼叫本地模型摘要
     summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
     return summary[0]["summary_text"]
+
+#
+async def summarize_ai_output(session_id: str) :
+    async with aiosqlite.connect(DB_PATH) as db:
+
+        memory = await get_ai_history(session_id)
+        if memory:
+            ai_history = memory["history"]
+            model = memory["model"]
+            if len(ai_history)>3:
+                ai_summary = summarize_conversation(ai_history)
+                print("ai summary:", ai_summary)
+                await save_ai_summary(session_id, ai_summary, model)
+                print('Succesfully save ai summary!')
+
+    return {"ok": True}
+

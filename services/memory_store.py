@@ -26,6 +26,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS ai_summary (
                 session_id TEXT PRIMARY KEY,
                 ai_summary_text TEXT,
+                model TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -40,6 +41,19 @@ async def get_history(session_id: str):
             if row:
                 return json.loads(row[0])
             return []
+
+# 讀取聊天歷史
+async def get_ai_history(session_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT history, model FROM memory WHERE session_id = ?", (session_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                history, model = row
+                if history:
+                    history = json.loads(history)
+                    ai_history = [turn["bot"] for turn in history if "bot" in turn]
+                    return {"history": ai_history, "model": model}
+            return None
 
 # 儲存聊天歷史
 async def save_history(session_id: str, history: list, model: str):
@@ -71,13 +85,13 @@ async def save_summary(session_id: str, summary: str):
         await db.commit()
 
 # 儲存總模型回覆摘要
-async def save_ai_summary(session_id: str, summary: str):
+async def save_ai_summary(session_id: str, summary: str, model: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
-            INSERT OR REPLACE INTO ai_summary (session_id, ai_summary_text, created_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO ai_summary (session_id, ai_summary_text, model,created_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             """,
-            (session_id, summary)
+            (session_id, summary, model)
         )
         await db.commit()

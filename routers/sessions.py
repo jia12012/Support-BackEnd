@@ -1,6 +1,8 @@
 # routers/sessions.py
 from fastapi import APIRouter
 import aiosqlite
+from pydantic import BaseModel
+from services.summarize import summarize_ai_output
 
 DB_PATH = "chat_memory.db"
 router = APIRouter()
@@ -22,3 +24,14 @@ async def get_next_session_id(model: str):
     session_id = f"{model}{next_index}"
     return {"model": model, "next_index": next_index, "session_id": session_id}
 
+
+
+class SummarizeReq(BaseModel):
+    session_id: str
+    # 如需也傳 model_name，可加：model_name: str
+
+@router.post("/summarize")
+async def summarize_endpoint(body: SummarizeReq):
+    # 呼叫你的邏輯
+    result = await summarize_ai_output(body.session_id)
+    return {"ok": True, "result": result}

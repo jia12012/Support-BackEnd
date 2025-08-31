@@ -14,14 +14,13 @@ def summarize_conversation(history: list[str]) -> str:
     text = " ".join(history)
 
     input_len = len(text.split())
-    max_length = int(input_len * 0.5) # 最長約佔原文 30%
-    min_length = int(input_len * 0.1)  # 最短佔原文 10%
+    max_length = int(input_len * 0.7) # 最長約佔原文 70%
 
     # T5 要求加前綴 "summarize:"
     text = "summarize: " + text
 
     # 呼叫本地模型摘要
-    summary = summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
+    summary = summarizer(text, max_length=max_length, do_sample=False)
     return summary[0]["summary_text"]
 
 #

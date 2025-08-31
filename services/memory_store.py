@@ -33,6 +33,8 @@ async def init_db():
 
         await db.commit()
 
+#問題、日期、是否回答
+
 # 讀取聊天歷史
 async def get_history(session_id: str):
     async with aiosqlite.connect(DB_PATH) as db:

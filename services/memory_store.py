@@ -31,6 +31,38 @@ async def init_db():
             )
         """)
 
+        # postcards
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS postcard (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                image_path TEXT,
+                message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # 題庫表：存放所有題目
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS daily_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                day_number INTEGER UNIQUE
+            )
+        """)
+
+        # 回答表：紀錄使用者對題目的回答
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS daily_answers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                question_id INTEGER,
+                answer TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, question_id)
+            )
+        """)
+
         await db.commit()
 
 #問題、日期、是否回答
@@ -97,3 +129,74 @@ async def save_ai_summary(session_id: str, summary: str, model: str):
             (session_id, summary, model)
         )
         await db.commit()
+
+
+# 儲存明信片（圖片路徑 + 訊息）
+async def save_postcard(session_id: str, image_path: str, message: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO postcard (session_id, image_path, message)
+            VALUES (?, ?, ?)
+        """, (session_id, image_path, message))
+        await db.commit()
+
+# 讀取某個 session 的明信片
+async def get_postcards(session_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("""
+            SELECT id, image_path, message, created_at
+            FROM postcard
+            WHERE session_id = ?
+            ORDER BY created_at DESC
+        """, (session_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {"id": r[0], "image_path": r[1], "message": r[2], "created_at": r[3]}
+                for r in rows
+            ]
+
+# 取得今天的題目（根據進度）
+async def get_today_question(user_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        # 先查已回答幾題
+        async with db.execute(
+            "SELECT COUNT(*) FROM daily_answers WHERE user_id = ?", (user_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            answered_count = row[0]
+
+        # 下一題 = 已回答題數 + 1
+        next_day_number = answered_count + 1
+        async with db.execute(
+            "SELECT id, question FROM daily_questions WHERE day_number = ?",
+            (next_day_number,),
+        ) as cursor:
+            row = await cursor.fetchone()
+            return {"id": row[0], "question": row[1]} if row else None
+
+
+# 儲存使用者的回答
+async def save_answer(user_id: str, question_id: int, answer: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT OR REPLACE INTO daily_answers (user_id, question_id, answer)
+            VALUES (?, ?, ?)
+        """, (user_id, question_id, answer))
+        await db.commit()
+
+
+# 查詢所有回答（用於日曆顯示）
+async def get_all_answers(user_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("""
+            SELECT q.day_number, q.question, a.answer, a.created_at
+            FROM daily_answers a
+            JOIN daily_questions q ON a.question_id = q.id
+            WHERE a.user_id = ?
+            ORDER BY q.day_number ASC
+        """, (user_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [
+                {"day": r[0], "question": r[1], "answer": r[2], "created_at": r[3]}
+                for r in rows
+            ]

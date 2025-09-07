@@ -21,10 +21,9 @@ async def asr_and_reply(
         model_name=model_name  # 傳進去
     )
 
-    audio_path = text_to_speech(reply)
-
+    audio_filename = text_to_speech(reply)
     return {
         "transcribed_text": user_text,
         "model_reply": reply,
-        "audio_url": f"/audio/{audio_path}"
+        "audio_url": f"/audio/{audio_filename}"
     }

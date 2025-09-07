@@ -46,8 +46,20 @@ def view_ai_summary():
 
     conn.close()
 
+def view_answer():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM daily_answers")
+    rows = cursor.fetchall()
+
+    print(rows)
+
+    conn.close()
+
 if __name__ == "__main__":
     print(f"🔍 使用資料庫路徑：{os.path.abspath(DB_PATH)}")
     view_all_histories()
     view_summary()
     view_ai_summary()
+    view_answer()

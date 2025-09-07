@@ -2,6 +2,8 @@
 from llama_cpp import Llama
 from services.memory_store import get_history, save_history, get_summary, save_summary
 from services.summarize import summarize_conversation
+import json
+from pathlib import Path
 
 # 初始化四個模型
 llm_models = {
@@ -16,6 +18,13 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     summary = await get_summary(session_id)
 
     prompt_parts = []
+
+    #加入人物prompt
+    path = Path(__file__).resolve().parents[1] / "prompts" / f"{model_name}.json"
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    character_prompt = data["operation"]["fields"][0]["value"]
+    prompt_parts.append(f"<|user|><SYS>{character_prompt}</SYS>Please reply only with: Acknowledged.<|assistant|>Acknowledged.")
 
     # 加入摘要
     if len(history) > 3:

@@ -7,30 +7,41 @@ DB_PATH = "chat_memory.db"
 # 初始化資料表
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
+        #
+        # await db.execute(f"DROP TABLE IF EXISTS memory")
+        # await db.execute(f"DROP TABLE IF EXISTS summary")
+        # await db.execute(f"DROP TABLE IF EXISTS ai_summary")
+
         await db.execute("""
             CREATE TABLE IF NOT EXISTS memory (
-                session_id TEXT PRIMARY KEY,
+                user_id TEXT,
+                session_id TEXT,
                 history TEXT,
-                model TEXT
+                model TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, session_id)
             )
         """)
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS summary (
-                session_id TEXT PRIMARY KEY,
-                summary_text TEXT
+                user_id TEXT,
+                session_id TEXT,
+                summary_text TEXT,
+                PRIMARY KEY (user_id, session_id)
             )
         """)
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS ai_summary (
-                session_id TEXT PRIMARY KEY,
+                user_id TEXT,
+                session_id TEXT,
                 ai_summary_text TEXT,
                 model TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, session_id)
             )
         """)
-
         # postcards
         await db.execute("""
             CREATE TABLE IF NOT EXISTS postcard (
@@ -65,21 +76,23 @@ async def init_db():
 
         await db.commit()
 
+
 #問題、日期、是否回答
 
 # 讀取聊天歷史
-async def get_history(session_id: str):
+async def get_history(user_id: str, session_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT history FROM memory WHERE session_id = ?", (session_id,)) as cursor:
+        async with db.execute("SELECT history FROM memory WHERE user_id = ? AND session_id = ?",
+            (user_id, session_id),) as cursor:
             row = await cursor.fetchone()
             if row:
                 return json.loads(row[0])
             return []
 
 # 讀取聊天歷史
-async def get_ai_history(session_id: str):
+async def get_ai_history(user_id: str, session_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT history, model FROM memory WHERE session_id = ?", (session_id,)) as cursor:
+        async with db.execute("SELECT history, model FROM memory WHERE user_id = ? AND session_id = ?", (user_id, session_id),)  as cursor:
             row = await cursor.fetchone()
             if row:
                 history, model = row
@@ -90,43 +103,41 @@ async def get_ai_history(session_id: str):
             return None
 
 # 儲存聊天歷史
-async def save_history(session_id: str, history: list, model: str):
+async def save_history(user_id: str, session_id: str, history: list, model: str):
     history_json = json.dumps(history)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            "REPLACE INTO memory (session_id, history, model) VALUES (?, ?, ?)",
-            (session_id, history_json, model)
+            "REPLACE INTO memory (user_id, session_id, history, model, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (user_id, session_id, history_json, model)
         )
         await db.commit()
 
 
 #讀取聊天摘要
-async def get_summary(session_id: str):
+async def get_summary(user_id: str, session_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT summary_text FROM summary WHERE session_id = ?", (session_id,)) as cursor:
+        async with db.execute("SELECT summary_text FROM summary WHERE user_id = ? AND session_id = ?",  (user_id, session_id),)  as cursor:
             row = await cursor.fetchone()
             return row[0] if row else None
 
 #儲存聊天摘要
-async def save_summary(session_id: str, summary: str):
+async def save_summary(user_id: str, session_id: str, summary: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
-            INSERT INTO summary (session_id, summary_text)
-            VALUES (?, ?)
-            ON CONFLICT(session_id) DO UPDATE SET
-                summary_text = excluded.summary_text
-        """, (session_id, summary))
+            INSERT OR REPLACE INTO summary (user_id, session_id, summary_text)
+            VALUES (?, ?, ?)
+        """, (user_id, session_id, summary))
         await db.commit()
 
 # 儲存總模型回覆摘要
-async def save_ai_summary(session_id: str, summary: str, model: str):
+async def save_ai_summary(user_id: str, session_id: str, summary: str, model: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
-            INSERT OR REPLACE INTO ai_summary (session_id, ai_summary_text, model,created_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT OR REPLACE INTO ai_summary (user_id, session_id, ai_summary_text, model, created_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
-            (session_id, summary, model)
+            (user_id, session_id, summary, model)
         )
         await db.commit()
 

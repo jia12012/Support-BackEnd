@@ -13,9 +13,9 @@ llm_models = {
     "Rhea": Llama(model_path="C:/Users/User/.lmstudio/models/Me/family-mental-llama-7b-q4_K_M/family-mental-llama-7b-q4_K_M.gguf", n_ctx=2048, n_threads=6, n_batch=64, verbose=False),
 }
 
-async def chat_with_model(user_input: str, session_id: str,model_name: str, max_new_tokens: int = 150) -> str:
-    history = await get_history(session_id)
-    summary = await get_summary(session_id)
+async def chat_with_model(user_id: str, session_id: str,user_input: str, model_name: str, max_new_tokens: int = 150) -> str:
+    history = await get_history(user_id, session_id)
+    summary = await get_summary(user_id, session_id)
 
     prompt_parts = []
 
@@ -54,7 +54,7 @@ async def chat_with_model(user_input: str, session_id: str,model_name: str, max_
     user_summary = summarize_conversation(user_history)
     print("summary: ", user_summary)
 
-    await save_history(session_id, history, model_name)
-    await save_summary(session_id, user_summary)
+    await save_history(user_id, session_id, history, model_name)
+    await save_summary(user_id, session_id, user_summary)
 
     return reply

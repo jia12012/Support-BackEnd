@@ -24,18 +24,17 @@ def summarize_conversation(history: list[str]) -> str:
     return summary[0]["summary_text"]
 
 #
-async def summarize_ai_output(session_id: str) :
+async def summarize_ai_output(user_id: str, session_id: str) :
     async with aiosqlite.connect(DB_PATH) as db:
 
-        memory = await get_ai_history(session_id)
+        memory = await get_ai_history(user_id, session_id)
         if memory:
             ai_history = memory["history"]
             model = memory["model"]
             if len(ai_history)>3:
                 ai_summary = summarize_conversation(ai_history)
                 print("ai summary:", ai_summary)
-                await save_ai_summary(session_id, ai_summary, model)
+                await save_ai_summary(user_id, session_id, ai_summary, model)
                 print('Succesfully save ai summary!')
 
     return {"ok": True}
-

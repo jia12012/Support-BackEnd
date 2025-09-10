@@ -3,8 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-
-from routers import asr, chat, sessions, summary, postcard, dailyQ
+from routers import asr, chat, sessions, summary, postcard, dailyQ, app_ws
 from services.memory_store import init_db
 
 app = FastAPI()
@@ -21,6 +20,8 @@ app.include_router(sessions.router, prefix="/sessions")
 app.include_router(summary.router, prefix="/summary", tags=["summary"])
 app.include_router(postcard.router, prefix="/postcard")
 app.include_router(dailyQ.router, prefix="/daily")
+
+app.include_router(app_ws.websocket_router)
 
 # ===== 設定靜態檔路徑，提供 /audio/xxxx.wav =====
 BASE_DIR = Path(__file__).parent

@@ -7,10 +7,6 @@ DB_PATH = "chat_memory.db"
 # 初始化資料表
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        #
-        # await db.execute(f"DROP TABLE IF EXISTS memory")
-        # await db.execute(f"DROP TABLE IF EXISTS summary")
-        # await db.execute(f"DROP TABLE IF EXISTS ai_summary")
 
         await db.execute("""
             CREATE TABLE IF NOT EXISTS memory (
@@ -73,6 +69,16 @@ async def init_db():
                 UNIQUE(user_id, question_id)
             )
         """)
+
+        await db.execute("""
+           CREATE TABLE IF NOT EXISTS safety_score (
+                user_id TEXT,
+                session_id TEXT,
+                score TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, session_id)
+                )
+           """)
 
         await db.commit()
 
@@ -211,3 +217,25 @@ async def get_all_answers(user_id: str):
                 {"day": r[0], "question": r[1], "answer": r[2], "created_at": r[3]}
                 for r in rows
             ]
+
+# 讀取分數
+async def get_safety_score(user_id: str, session_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT score FROM safety_score WHERE user_id = ? AND session_id = ?",
+            (user_id, session_id)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                score = row[0]   # 因為 SELECT 只有一欄 → 直接取 row[0]
+                return score
+            return 0
+
+# 儲存聊天歷史
+async def save_safety_score(user_id: str, session_id: str, score: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "REPLACE INTO safety_score (user_id, session_id, score, created_at) VALUES ( ?, ?, ?, CURRENT_TIMESTAMP)",
+            (user_id, session_id, score)
+        )
+        await db.commit()

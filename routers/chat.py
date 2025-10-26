@@ -1,8 +1,10 @@
 # routers/chat.py
 from fastapi import APIRouter, Body
 from services.llm_service import chat_with_model
+from services.safety import analyze_risk
 from services.memory_store import save_history
 import aiosqlite
+import asyncio
 DB_PATH = "chat_memory.db"
 
 router = APIRouter()
@@ -14,8 +16,16 @@ async def chat_endpoint(
     session_id: str = Body(..., embed=True),
     model_name: str = Body(..., embed=True),
 ):
-    reply = await chat_with_model(user_id, session_id, text, model_name)
-    return {"response": reply}
+
+    # 並行執行：同時讓模型生成回覆 + 安全風險分析
+    reply_task = asyncio.create_task(chat_with_model(user_id, session_id, text, model_name))
+    safety_task = asyncio.create_task(analyze_risk(user_id, session_id, text))
+
+    # 等待兩個結果都完成
+    reply = await reply_task
+    risk_score = await safety_task
+
+    return {"response": reply, "score": risk_score}
 
 
 # 刪除聊天記錄（包含 memory / summary / ai_summary）

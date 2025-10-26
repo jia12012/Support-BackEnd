@@ -201,7 +201,7 @@ async def _process_flush(ws: WebSocket, state: dict):
 
         # 5) TTS（放 executor，避免阻塞）
         try:
-            audio_b64 = await _run_in_thread(_synthesize_tts_to_b64, reply_text, "zh-tw")
+            audio_b64 = await _run_in_thread(_synthesize_tts_to_b64, reply_text, "en")
             await send_json_safe(ws, {"type": "tts", "data": audio_b64})
         except Exception as e:
             await send_json_safe(ws, {"type": "error", "message": f"tts_failed: {e}"})

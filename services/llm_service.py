@@ -2,6 +2,9 @@
 from llama_cpp import Llama
 from services.memory_store import get_history, save_history, get_summary, save_summary
 from services.summarize import summarize_conversation
+from services.translate import translate
+
+
 import json
 from pathlib import Path
 
@@ -13,10 +16,11 @@ llm_models = {
     "Rhea": Llama(model_path="C:/Users/User/.lmstudio/models/Me/family-mental-llama-7b-q4_K_M/family-mental-llama-7b-q4_K_M.gguf", n_ctx=2048, n_threads=6, n_batch=64, verbose=False),
 }
 
+#模型對話
 async def chat_with_model(user_id: str, session_id: str,user_input: str, model_name: str, max_new_tokens: int = 150) -> str:
     history = await get_history(user_id, session_id)
     summary = await get_summary(user_id, session_id)
-
+    user_input = translate(user_input, "zho_Hant", "eng_Latn")
     prompt_parts = []
 
     #加入人物prompt
@@ -50,11 +54,13 @@ async def chat_with_model(user_id: str, session_id: str,user_input: str, model_n
     history.append({"user": user_input, "bot": reply})
 
     #進行摘要
-    user_history = [turn["user"] for turn in history if "user" in turn]
-    user_summary = summarize_conversation(user_history)
-    print("summary: ", user_summary)
-
     await save_history(user_id, session_id, history, model_name)
-    await save_summary(user_id, session_id, user_summary)
 
-    return reply
+    # 只有在對話滿 4 輪後才開始摘要
+    if len(history) > 3:
+        user_history = [turn["user"] for turn in history if "user" in turn]
+        user_summary = summarize_conversation(user_history)
+        print("summary: ", user_summary)
+        await save_summary(user_id, session_id, user_summary)
+
+    return translate(reply)+" ( "+reply+" ) "

@@ -7,7 +7,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "../chat_memory.db")
 
-def view_all_histories():
+def test_view_all_histories():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -58,8 +58,8 @@ def view_answer():
     conn.close()
 
 if __name__ == "__main__":
-    print(f"🔍 使用資料庫路徑：{os.path.abspath(DB_PATH)}")
-    view_all_histories()
-    view_summary()
+    # print(f"🔍 使用資料庫路徑：{os.path.abspath(DB_PATH)}")
+    # view_all_histories()
+    # view_summary()
     view_ai_summary()
-    view_answer()
+    # view_answer()

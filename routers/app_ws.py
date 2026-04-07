@@ -192,6 +192,9 @@ async def _process_flush(ws: WebSocket, state: dict):
                 user_input=text,
                 model_name=model_name,
             )
+
+            reply_text = reply_text.split("(")[1].split(")")[0]
+            print(reply_text)
         except Exception as e:
             await send_json_safe(ws, {"type": "error", "message": f"llm_failed: {e}"})
             state["chunks"] = []

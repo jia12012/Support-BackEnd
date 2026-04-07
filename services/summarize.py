@@ -1,6 +1,8 @@
 from transformers import pipeline
 import aiosqlite
 from services.memory_store import get_ai_history, save_ai_summary
+from services.translate import translate
+
 DB_PATH = "chat_memory.db"
 
 # 初始化一次（建議啟動時就跑）
@@ -33,6 +35,8 @@ async def summarize_ai_output(user_id: str, session_id: str) :
             model = memory["model"]
             if len(ai_history)>3:
                 ai_summary = summarize_conversation(ai_history)
+                print("ai summary:", ai_summary)
+                ai_summary = translate(ai_summary)
                 print("ai summary:", ai_summary)
                 await save_ai_summary(user_id, session_id, ai_summary, model)
                 print('Succesfully save ai summary!')
